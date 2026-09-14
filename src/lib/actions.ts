@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { getSessionUser, isValidUsername, normalizeUsername, usernameToEmail } from "@/lib/auth";
 import { PRIORITIES, STATUSES, type Priority, type Status } from "@/lib/constants";
+import { publicEnv } from "@/lib/env";
 import { normalizeReport } from "@/lib/normalize";
 import { generatePassword } from "@/lib/password";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -40,6 +41,23 @@ export async function signInAction(
 
   if (!username.trim() || !password) {
     return { error: "Nama pengguna atau kata sandi salah." };
+  }
+
+  // A missing Supabase config makes createServerClient throw, which surfaces as
+  // an opaque "server-side exception" page. Catch it here and say what is
+  // actually wrong — a deployment misconfiguration is not a login failure, and
+  // pretending otherwise sends whoever is debugging down the wrong path.
+  if (!publicEnv.supabaseUrl || !publicEnv.supabaseAnonKey) {
+    console.error(
+      "[auth] NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY kosong saat runtime. " +
+        "Keduanya di-inline saat build, jadi pastikan keduanya tersedia pada build " +
+        "(di Vercel: variabel biasa, bukan Sensitive) lalu deploy ulang tanpa build cache.",
+    );
+    return {
+      error:
+        "Konfigurasi server belum lengkap sehingga login tidak dapat diproses. " +
+        "Hubungi administrator teknis.",
+    };
   }
 
   const supabase = await createClient();
