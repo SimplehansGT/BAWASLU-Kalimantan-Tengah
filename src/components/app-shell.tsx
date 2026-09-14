@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ExternalLink,
   FilePlus2,
   FileText,
   LayoutDashboard,
@@ -128,6 +129,20 @@ function SidebarBody({
       <Separator />
 
       <div className="flex flex-col gap-1">
+        {/* Opens in a new tab: this is the citizen-facing form, not a section
+            of the dashboard, and staff mostly want it to copy the link. */}
+        <a
+          href="/lapor"
+          target="_blank"
+          rel="noreferrer"
+          className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+        >
+          <ExternalLink className="size-4 shrink-0" aria-hidden />
+          Form Lapor Publik
+        </a>
+
+        <Separator className="my-1" />
+
         <div className="px-3 py-2">
           <p className="truncate text-sm font-medium">{fullName || username}</p>
           <p className="truncate text-xs text-muted-foreground">

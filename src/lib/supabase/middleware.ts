@@ -4,8 +4,14 @@ import { NextResponse, type NextRequest } from "next/server";
 import { publicEnv } from "@/lib/env";
 import type { Database } from "@/types/database";
 
-/** Paths reachable without a session. Everything else redirects to /login. */
-const PUBLIC_PATHS = ["/login"];
+/**
+ * Paths reachable without a session. Everything else redirects to /login.
+ *
+ * `/lapor` is the public reporting form. It is write-only: submission runs
+ * through a server action using the service role, so opening this path to
+ * anonymous visitors grants no read access to anything.
+ */
+const PUBLIC_PATHS = ["/login", "/lapor"];
 
 /**
  * Paths that authenticate themselves and must not be redirected.
