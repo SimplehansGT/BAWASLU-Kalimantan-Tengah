@@ -24,8 +24,18 @@ const ROOT = process.cwd();
 const SRC = join(ROOT, "src");
 const CLIENT_ASSETS = join(ROOT, ".next", "static");
 
-const FORBIDDEN_IN_CLIENT = [
+/**
+ * Both spellings of the RLS-bypassing key: Supabase renamed `service_role` to
+ * the "secret" key, and the Vercel integration exports the new name.
+ */
+const SECRET_ENV_NAMES = [
   "SUPABASE_SERVICE_ROLE_KEY",
+  "SUPABASE_SECRET_KEY",
+  "SUPABASE_JWT_SECRET",
+];
+
+const FORBIDDEN_IN_CLIENT = [
+  ...SECRET_ENV_NAMES,
   "@/lib/server-env",
   "@/lib/supabase/admin",
 ];
@@ -80,14 +90,17 @@ function checkClientSources(): Finding[] {
 
 function checkBuiltAssets(): Finding[] {
   const findings: Finding[] = [];
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  // Nothing to search for if the key is not configured in this environment.
-  // The source-level check above still runs, so this is a soft skip.
-  if (!key || key.length < 20) {
-    console.log(
-      "  › SUPABASE_SERVICE_ROLE_KEY tidak diset; pemeriksaan isi bundel dilewati.",
-    );
+  // Every secret configured in this environment, under whichever name.
+  const secrets = SECRET_ENV_NAMES.map((name) => ({ name, value: process.env[name] })).filter(
+    (s): s is { name: string; value: string } =>
+      typeof s.value === "string" && s.value.length >= 20,
+  );
+
+  // Nothing to search for if none are configured here. The source-level check
+  // above still runs, so this is a soft skip.
+  if (secrets.length === 0) {
+    console.log("  › Tidak ada kunci rahasia di lingkungan ini; pemeriksaan bundel dilewati.");
     return findings;
   }
 
@@ -104,15 +117,19 @@ function checkBuiltAssets(): Finding[] {
     } catch {
       continue; // binary asset
     }
-    if (contents.includes(key)) {
-      findings.push({
-        file: relative(ROOT, file),
-        detail: "nilai SUPABASE_SERVICE_ROLE_KEY ditemukan di bundel klien",
-      });
+    for (const secret of secrets) {
+      if (contents.includes(secret.value)) {
+        findings.push({
+          file: relative(ROOT, file),
+          detail: `nilai ${secret.name} ditemukan di bundel klien`,
+        });
+      }
     }
   }
 
-  console.log(`  › ${assets.length} aset klien diperiksa.`);
+  console.log(
+    `  › ${assets.length} aset klien diperiksa terhadap ${secrets.length} kunci rahasia.`,
+  );
   return findings;
 }
 
