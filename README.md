@@ -81,15 +81,23 @@ INTAKE_SECRET=                     # openssl rand -base64 32
 ### 5. Create the first administrator
 
 Accounts can only be created from inside the app by an authenticated admin,
-which leaves a chicken-and-egg problem at install time. This script is the
-answer, and it refuses to run once any account exists:
+which leaves a chicken-and-egg problem at install time. There are two ways out
+of it; both produce the same result.
+
+**With a local environment:**
 
 ```bash
 npx tsx scripts/create-first-admin.ts <username>
 ```
 
 It prints a generated password **once**. Copy it now — there is no email and no
-self-service reset.
+self-service reset. The script refuses to run if any account already exists.
+
+**Without one** (deploying straight to Vercel), do it in the dashboard instead:
+create the user under Authentication → Users with the email
+`<username>@internal.lapor` and "Auto Confirm User" ticked, then run
+[`supabase/bootstrap-admin.sql`](supabase/bootstrap-admin.sql) in the SQL
+editor to attach the admin profile. The file has the steps inline.
 
 ### 6. Optional: seed synthetic data
 
