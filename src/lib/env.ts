@@ -9,19 +9,37 @@
  */
 
 /**
- * Supabase renamed its API keys: the `anon` key became the "publishable" key.
- * Projects created before the change still issue the old name, and the Vercel
- * integration exports whichever the project has — so both are accepted.
+ * The Supabase URL and anon key, under every name they are published as.
  *
- * Each name is spelled out as a literal `process.env.X`. Next inlines
- * NEXT_PUBLIC_* values at build time by static substitution, so a computed
- * lookup would come back undefined in the browser.
+ * Two axes of variation, hence the list:
+ *
+ *  1. Supabase renamed the `anon` key to the "publishable" key. Older projects
+ *     still issue the old name; newer ones issue the new one.
+ *  2. NEXT_PUBLIC_* is inlined into the bundle at *build* time. The unprefixed
+ *     names are read at *runtime* instead, which is the only thing that works
+ *     when a host marks a variable as secret/sensitive and withholds it from
+ *     the build — as Vercel does, and as the Supabase Vercel integration's own
+ *     SUPABASE_URL / SUPABASE_ANON_KEY are exported.
+ *
+ * Every consumer of this runs on the server (server components, server actions,
+ * middleware), so the runtime fallbacks are genuinely reachable. Only
+ * lib/supabase/client.ts needs the build-time inlining, and nothing imports it.
+ *
+ * Each name is spelled out as a literal `process.env.X` because Next performs
+ * the NEXT_PUBLIC_* substitution textually — a computed lookup would not match.
+ * Neither of these values is a secret: the anon key is served to every visitor
+ * by design, and RLS is what actually protects the data.
  */
 export const publicEnv = {
-  supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
+  supabaseUrl:
+    process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    process.env.SUPABASE_URL ||
+    "",
   supabaseAnonKey:
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_PUBLISHABLE_KEY ||
     "",
 };
 
